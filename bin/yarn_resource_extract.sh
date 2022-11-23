@@ -21,7 +21,7 @@ log_directory="/opt/monitoring/yarn_queues/log"
 todays_dir="$log_directory/tmp/"$todays_date""
 
 #beeline_url
-beeline_url="jdbc:hive2://pwauslmnisd09.app.hcscint.net:2181,pwauslmnisd10.app.hcscint.net:2181,pwauslmnisd11.app.hcscint.net:2181/;serviceDiscoveryMode=zooKeeper;zooKeeperNamespace=hiveserver2"
+beeline_url="UPDATE_BEELINE_URL_HERE"
 
 #Cleanup
 rm -r "$todays_dir";mkdir -p "$todays_dir"
