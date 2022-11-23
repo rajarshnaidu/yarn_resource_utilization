@@ -30,7 +30,7 @@ def convert(cfile,ffile):
 
     initial_list=[]
     for i in range(len(a)):
-        app_id,user,st_temp,end_temp,mem_sec,v_sec,queue=a[i].split("|")
+        app_id,app_name,user,job_state,st_temp,end_temp,ellapsed_time,final_status,mem_sec,v_sec,queue=a[i].split("|")
         if app_id != "App_ID":
             if end_temp != "0":
                 start_time_gmt=time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(int(st_temp)/1000.0))
@@ -44,7 +44,7 @@ def convert(cfile,ffile):
                         vCores=str(int(int(v_sec)/time_in_seconds))
                 else:
                         vCores=str(int(0))
-                initial_list.append((app_id+"|"+user+"|"+start_time_gmt+"|"+end_time_gmt+"|"+memory+"|"+vCores+"|"+queue))
+                initial_list.append((app_id+"|"+app_name+"|"+user+"|"+job_state+"|"+start_time_gmt+"|"+end_time_gmt+"|"+str(time_in_seconds)+"|"+final_status+"|"+memory+"|"+vCores+"|"+queue))
             else:
                 end_temp = "running"
                 start_time_gmt=time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(int(st_temp)/1000.0))
@@ -59,25 +59,28 @@ def convert(cfile,ffile):
                         vCores=str(int(int(v_sec)/time_in_seconds))
                 else:
                         vCores=str(int(0))
-                initial_list.append((app_id+"|"+user+"|"+start_time_gmt+"|"+end_temp+"|"+memory+"|"+vCores+"|"+queue))
+                initial_list.append((app_id+"|"+app_name+"|"+user+"|"+job_state+"|"+start_time_gmt+"|"+end_temp+"|"+str(time_in_seconds)+"|"+final_status+"|"+memory+"|"+vCores+"|"+queue))
 
     final_list=[]
     for item in initial_list:
         from_zone = tz.gettz('GMT')
         to_zone = tz.gettz('America/Chicago')
-        app_id,user,st_temp,end_temp,mem,vCores,queue=item.split("|")
+        try:
+            app_id,app_name,user,job_state,st_temp,end_temp,ellapsed_time,final_status,mem,vCores,queue=item.split("|")
+        except:
+            print(app_id)
         if end_temp == "running":
             st_temp_gmt=datetime.strptime(st_temp, '%Y-%m-%d %H:%M:%S').replace(tzinfo=from_zone)
-            st_cdt=str(st_temp_gmt.astimezone(to_zone)).split("-05:00")[0]
+            st_cdt=str(st_temp_gmt.astimezone(to_zone)).split("-06:00")[0]
             mem_in_gb=(round(int(mem)/1024))
-            final_list.append((app_id+"|"+user+"|"+str(st_cdt)+"|"+str(end_temp)+"|"+str(mem_in_gb)+"|"+vCores+"|"+queue))
+            final_list.append((app_id+"|"+app_name+"|"+user+"|"+job_state+"|"+str(st_cdt)+"|"+str(end_temp)+"|"+str(ellapsed_time)+"|"+str(mem_in_gb)+"|"+vCores+"|"+queue+"|"+str(todays_date)))
         else:
             st_temp_gmt=datetime.strptime(st_temp, '%Y-%m-%d %H:%M:%S').replace(tzinfo=from_zone)
             end_temp_gmt=datetime.strptime(end_temp, '%Y-%m-%d %H:%M:%S').replace(tzinfo=from_zone)
-            st_cdt=str(st_temp_gmt.astimezone(to_zone)).split("-05:00")[0]
-            end_cdt=str(end_temp_gmt.astimezone(to_zone)).split("-05:00")[0]
+            st_cdt=str(st_temp_gmt.astimezone(to_zone)).split("-06:00")[0]
+            end_cdt=str(end_temp_gmt.astimezone(to_zone)).split("-06:00")[0]
             mem_in_gb=(round(int(mem)/1024))
-            final_list.append((app_id+"|"+user+"|"+str(st_cdt)+"|"+str(end_cdt)+"|"+str(mem_in_gb)+"|"+vCores+"|"+queue))
+            final_list.append((app_id+"|"+app_name+"|"+user+"|"+job_state+"|"+str(st_cdt)+"|"+str(end_cdt)+"|"+str(ellapsed_time)+"|"+str(mem_in_gb)+"|"+vCores+"|"+queue+"|"+str(todays_date)))
 
     with open(ffile, 'w+') as final:
         for item in final_list:
