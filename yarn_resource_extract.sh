@@ -4,7 +4,7 @@
 set -x
 
 ##Initializing_Kerberos
-/usr/bin/klist -s || kinit -kt /etc/security/keytabs/a6736148-Prod.keytab a6736148@realm.com
+/usr/bin/klist -s || kinit -kt /etc/security/keytabs/a6736148-Prod.keytab a6736148@ADHCSCINT.NET
 
 ##Todays_Date##
 pass=$1
@@ -20,29 +20,30 @@ conf_directory="/opt/monitoring/yarn_queues/conf"
 log_directory="/opt/monitoring/yarn_queues/log"
 todays_dir="$log_directory/tmp/"$todays_date""
 
+#beeline_url
+beeline_url="jdbc:hive2://pwauslmnisd09.app.hcscint.net:2181,pwauslmnisd10.app.hcscint.net:2181,pwauslmnisd11.app.hcscint.net:2181/;serviceDiscoveryMode=zooKeeper;zooKeeperNamespace=hiveserver2"
+
 #Cleanup
 rm -r "$todays_dir";mkdir -p "$todays_dir"
 
 ######Reading_from_param_file###
-db=$(cat $conf_directory/create_table_params_dont_modify.log | grep 'db=' | awk -F'=' '{print $2}' | awk -F';' '{print $1}')
-table=$(cat $conf_directory/create_table_params_dont_modify.log | grep 'table' | awk -F'=' '{print $2}' | awk -F';' '{print $1}')
-db_location=$(cat $conf_directory/create_table_params_dont_modify.log | grep 'db_location' | awk -F'=' '{print $2}' | awk -F';' '{print $1}')
+read -r db table db_location <<< $(cat $conf_directory/create_table_params_dont_modify.log | awk -F'=|;' '{print $2}')
 
 yarn_extraction()
 {
         cluster_name()
         {
-                name=$(curl -u $user:$1 -H "X-Requested-By: ambari" -i -X GET -k https://$ambari_host:8443/api/v1/clusters | grep "cluster_name" | awk -F ':' '{print $2}' | sed 's+"++g' | sed 's+,++g' | awk '{$1=$1;print}')
+                name=$(curl -u admin:$1 -H "X-Requested-By: ambari" -i -X GET -k https://$ambari_host:8443/api/v1/clusters | grep "cluster_name" | awk -F ':' '{print $2}' | sed 's+"++g' | sed 's+,++g' | awk '{$1=$1;print}')
                 echo $name
         }
 
         cname=$(cluster_name "$pass" "$ambari_host")
 
-        rms=$(curl -k -H "X-Requested-By: ambari" -X GET -u $user:$pass https://"$ambari_host":8443/api/v1/clusters/"$cname"/services/YARN/components/RESOURCEMANAGER | grep 'host_name' | awk -F':' '{print $2}' | sed 's+"++g' | awk '{$1=$1;print}')
+        rms=$(curl -k -H "X-Requested-By: ambari" -X GET -u admin:$pass https://"$ambari_host":8443/api/v1/clusters/"$cname"/services/YARN/components/RESOURCEMANAGER | grep 'host_name' | awk -F':' '{print $2}' | sed 's+"++g' | awk '{$1=$1;print}')
 
         resource_manager=$(for rm in $rms; do a=$(curl -k --negotiate -u : https://$rm:8090); if [[ -z $a ]]; then echo $rm; fi; done)
 
-        echo -e "App_ID|User|Start_Time|End_Time|Mem|vCores|Queue" > $todays_dir/"$todays_date".log
+        echo -e "App_ID|App_name|User|Job_State|Start_Time|End_Time|Run_Time|Final_Status|Mem|vCores|Queue" > $todays_dir/"$todays_date".log
 
         appids()
         {
@@ -58,7 +59,7 @@ yarn_extraction()
         convertEpoch(){
             echo `date '+%Y-%m-%d %H:%M:%S' -d@$(expr $1 / 1000)`
         }
-        
+
         for app_id in `echo $app_ids`
         do
                 read -r app_name user_who_ran started_time end_time ellapsed_time job_state final_status queue_name mem_api vCores_api \
@@ -80,5 +81,5 @@ if [[ $? -eq 0 ]] && [[ -s "$todays_dir"/final.log ]]; then
         hadoop fs -rm -r "$db_location"/"$todays_date";hadoop fs -mkdir -p "$db_location"/"$todays_date"
         hadoop fs -put "$todays_dir"/final.log "$db_location"/"$todays_date"/
         beeline -u $beeline_url -f "$conf_directory"/create_table.hql --hivevar db="$db" --hivevar table="$table" --hivevar db_location="$db_location"
-        echo "alter table "$db"."$table" add IF NOT EXISTS partition (load_date='"$todays_date"') location '"hdfs://sdlpnn"$db_location"/"$todays_date""';" | hive
+        echo "alter table "$db"."$table" add IF NOT EXISTS partition (reporting_date='"$todays_date"') location '"hdfs://sdlpnn"$db_location"/"$todays_date""';" | beeline -u "$beeline_url"
 fi
