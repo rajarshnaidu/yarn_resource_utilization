@@ -1,0 +1,3 @@
+set db=sdl_admin_operations;
+set table=yarn_queues;
+set db_location=/data/hive/sdl_admin_operations/yarn_queues;
