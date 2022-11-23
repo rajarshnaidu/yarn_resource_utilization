@@ -1,3 +1,0 @@
-set db=default;
-set table=yarn_queues;
-set db_location=/user/i378249/yarn_queues;
