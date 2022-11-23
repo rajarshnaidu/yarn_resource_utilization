@@ -4,7 +4,7 @@
 set -x
 
 ##Initializing_Kerberos
-/usr/bin/klist -s || kinit -kt /etc/security/keytabs/a6736148-Prod.keytab a6736148@ADHCSCINT.NET
+/usr/bin/klist -s || kinit -kt /etc/security/keytabs/a6736148-Prod.keytab a6736148@realm.com
 
 ##Todays_Date##
 pass=$1
