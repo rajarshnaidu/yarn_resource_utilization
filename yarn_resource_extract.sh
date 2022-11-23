@@ -58,16 +58,15 @@ yarn_extraction()
         convertEpoch(){
             echo `date '+%Y-%m-%d %H:%M:%S' -d@$(expr $1 / 1000)`
         }
-
+        
         for app_id in `echo $app_ids`
         do
-                user_who_ran=$(curl -k --negotiate -u : https://$resource_manager:8090/ws/v1/cluster/apps/$app_id | jq .app.user | sed 's+"++g')
-                started_time=$(curl -k --negotiate -u : https://$resource_manager:8090/ws/v1/cluster/apps/$app_id | jq .app.startedTime)
-                end_time=$(curl -k --negotiate -u : https://$resource_manager:8090/ws/v1/cluster/apps/$app_id | jq .app.finishedTime)
-                queue_name=$(curl -k --negotiate -u : https://$resource_manager:8090/ws/v1/cluster/apps/$app_id | jq .app.queue | sed 's+"++g')
-                mem_api=$(curl -k --negotiate -u : https://$resource_manager:8090/ws/v1/cluster/apps/$app_id | jq .app.memorySeconds)
-                vCores_api=$(curl -k --negotiate -u : https://$resource_manager:8090/ws/v1/cluster/apps/$app_id | jq .app.vcoreSeconds)
-                echo -e "$app_id|$user_who_ran|$started_time|$end_time|$mem_api|$vCores_api|$queue_name"
+                read -r app_name user_who_ran started_time end_time ellapsed_time job_state final_status queue_name mem_api vCores_api \
+                <<< $(curl -k --negotiate -u : https://$resource_manager:8090/ws/v1/cluster/apps/$app_id | \
+                    jq '.app | .name,.user,.startedTime,.finishedTime,.elapsedTime,.state,.finalStatus,.queue,.memorySeconds,.vcoreSeconds' | \
+                    sed 's+"++g' | sed 's+ +_+g')
+
+                echo -e "$app_id|$app_name|$user_who_ran|$job_state|$started_time|$end_time|$ellapsed_time|$final_status|$mem_api|$vCores_api|$queue_name"
         done 1>>$todays_dir/"$todays_date".log 2>/dev/null
 }
 
